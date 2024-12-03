@@ -1,0 +1,202 @@
+import tkinter as tk
+from tkinter import ttk
+
+
+class Semicircle:
+    def __init__(self, radius, color, x_center, y_center):
+        self.radius = radius  # Радиус полукруга
+        self.color = color  # Цвет полукруга
+        self.angle = 0  # Угол поворота
+        self.x_center = x_center  # Координата X центра
+        self.y_center = y_center  # Координата Y центра
+
+    def rotate(self, angle):
+        """Поворачивает полукруг на заданный угол."""
+        self.angle = (self.angle + angle) % 360
+
+    def visualize(self, canvas):
+        """Визуализирует полукруг на холсте."""
+        start_angle = self.angle - 90
+        extent_angle = 180
+
+
+        y_center = 550 - self.y_center
+
+        # Рисуем полукруг с помощью метода create_arc
+        canvas.create_arc(
+            self.x_center - self.radius,
+            y_center - self.radius,
+            self.x_center + self.radius,
+            y_center + self.radius,
+            start=start_angle,
+            extent=extent_angle,
+            fill=self.color,
+            outline='black',
+            width=2
+        )
+
+
+class SemicircleApp:
+    def __init__(self, master):
+        self.master = master
+        master.title("Полукруги")
+
+
+        self.canvas = tk.Canvas(master, width=790, height=590, bg='white')
+        self.canvas.pack()
+
+
+        self.draw_boundary()
+        self.draw_grid()
+
+
+        control_frame = tk.Frame(master)
+        control_frame.pack(side=tk.TOP)
+
+        # Ввод радиуса
+        self.radius_label = tk.Label(control_frame, text="Введите радиус полукруга:")
+        self.radius_label.pack(side=tk.LEFT)
+        self.radius_entry = tk.Entry(control_frame)
+        self.radius_entry.pack(side=tk.LEFT)
+
+        # Ввод координат X и Y
+        self.x_label = tk.Label(control_frame, text="Введите X:")
+        self.x_label.pack(side=tk.LEFT)
+        self.x_entry = tk.Entry(control_frame)
+        self.x_entry.pack(side=tk.LEFT)
+
+        self.y_label = tk.Label(control_frame, text="Введите Y:")
+        self.y_label.pack(side=tk.LEFT)
+        self.y_entry = tk.Entry(control_frame)
+        self.y_entry.pack(side=tk.LEFT)
+
+        # Выбор цвета
+        self.color_label = tk.Label(control_frame, text="Выберите цвет:")
+        self.color_label.pack(side=tk.LEFT)
+        self.color_combobox = ttk.Combobox(control_frame, values=["red", "green", "blue", "yellow", "purple", "orange"])
+        self.color_combobox.set("blue")  # Установим значение по умолчанию
+        self.color_combobox.pack(side=tk.LEFT)
+
+        # Создаем фрейм для кнопок
+        button_frame = tk.Frame(master)
+        button_frame.pack(side=tk.TOP, pady=5)
+
+        # Кнопки
+        self.create_button = tk.Button(button_frame, text="Создать полукруг", command=self.create_semicircle)
+        self.create_button.pack(side=tk.LEFT)
+
+        self.rotate_button = tk.Button(button_frame, text="Повернуть полукруг", command=self.rotate_semicircle)
+        self.rotate_button.pack(side=tk.LEFT)
+
+        self.load_button = tk.Button(button_frame, text="Загрузить из файла", command=self.load_semicircles)
+        self.load_button.pack(side=tk.LEFT)
+
+        self.clear_button = tk.Button(button_frame, text="Очистить", command=self.clear_canvas)
+        self.clear_button.pack(side=tk.LEFT)
+
+        self.semicircles = []
+
+    def draw_boundary(self):
+        """Рисует ограничивающую рамку на холсте."""
+        self.canvas.create_rectangle(50, 50, 750, 550, outline='black', width=2)
+        self.canvas.create_text(400, 30, text="Область рисования полукруга", font=("Arial", 12))
+
+    def draw_grid(self):
+        """Рисует координатную сетку."""
+        # Рисуем ось X
+        for x in range(50, 801, 50):
+            self.canvas.create_line(x, 550, x, 555, fill='black')
+            self.canvas.create_text(x, 570, text=str(x - 50), font=("Arial", 8))
+
+        # Рисуем ось Y
+        for y in range(50, 601, 50):
+            self.canvas.create_line(50, y, 45, y, fill='black')
+            self.canvas.create_text(20, y, text=str(550 - y), font=("Arial", 8))
+
+    def create_semicircle(self):
+        """Создает новый полукруг и визуализирует его."""
+        try:
+            # Получаем радиус, координаты и цвет из полей ввода
+            radius = int(self.radius_entry.get())
+            x_center = int(self.x_entry.get())
+            y_center = int(self.y_entry.get())
+            color = self.color_combobox.get()
+
+            # Проверка на положительный радиус
+            if radius <= 0:
+                raise ValueError("Радиус должен быть положительным числом.")
+
+            # Проверка, чтобы полукруг не выходил за пределы ограниченной области
+            if not (50 + radius <= x_center <= 750 - radius) or not (50 + radius <= y_center <= 550 - radius):
+                raise ValueError("Полукруг должен находиться в пределах ограниченной области.")
+
+            semicircle = Semicircle(radius, color, x_center, y_center)  # Передаем координаты
+            self.semicircles.append(semicircle)
+            semicircle.visualize(self.canvas)  # Передаем холст, а не координаты
+        except ValueError as e:
+            print("Ошибка ввода:", e)
+
+    def rotate_semicircle(self):
+        """Поворачивает последний созданный полукруг на 45 градусов."""
+        if self.semicircles:
+            self.semicircles[-1].rotate(45)
+            self.redraw_canvas()
+
+    def redraw_canvas(self):
+        """Перерисовывает холст с полукругами."""
+        self.canvas.delete("all")  # Очищаем холст
+        self.draw_boundary()  # Перерисовываем рамку
+        self.draw_grid()  # Перерисовываем сетку
+        for semicircle in self.semicircles:
+            # Используем реальные координаты для визуализации
+            semicircle.visualize(self.canvas)
+
+    def load_semicircles(self):
+        """Загружает полукруги из текстового файла."""
+        try:
+            with open('semicircles.txt', 'r') as file:
+                for line in file:
+                    radius_str, color = line.strip().split(',')
+                    radius = int(radius_str)
+                    # Используем фиксированные координаты для загрузки
+                    x_center, y_center = 400, 300
+                    if self.validate_input(radius, color):  # Проверка корректности
+                        semicircle = Semicircle(radius, color, x_center, y_center)
+                        self.semicircles.append(semicircle)
+                        semicircle.visualize(self.canvas)
+                    else:
+                        print(f"Некорректные данные: {line.strip()}")
+        except Exception as e:
+            print("Ошибка загрузки данных:", e)
+
+    def clear_canvas(self):
+        """Очищает холст и удаляет все полукруги."""
+        self.canvas.delete("all")
+        self.draw_boundary()
+        self.draw_grid()
+        self.semicircles.clear()
+
+
+    def validate_input(radius, color):
+        """Проверка корректности входных данных."""
+        return isinstance(radius, int) and radius > 0 and isinstance(color, str)
+
+root = tk.Tk()
+
+# Получаем размеры экрана
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+
+# Размеры окна
+window_width = 900
+window_height = 650
+
+# Вычисляем координаты для размещения окна по центру экрана
+x_coordinate = int((screen_width / 2) - (window_width / 2))
+y_coordinate = int((screen_height / 2) - (window_height / 2))
+
+# Устанавливаем размеры и положение окна
+root.geometry(f"{window_width}x{window_height}+{x_coordinate}+{y_coordinate}")
+
+app = SemicircleApp(root)
+root.mainloop()
